@@ -37,47 +37,6 @@ if requestFunction then
 else
     warn("Nenhuma função de solicitação HTTP disponível.")
 end
-
---Webhook
-local HttpService = game:GetService("HttpService")
-local Webhook_URL = "https://discord.com/api/webhooks/1273126437347393570/592JRl1TYx3XZZXOYLt44dDM4kU7vQygoU5Y8nJ9IwQwyP-fioweNsKcjN-WVA82Vavn" --Wehbook
-
-local function sendRequest(requestFunction)
-    local jsonBody = HttpService:JSONEncode({
-        ["content"] = "",
-        ["embeds"] = {{
-            ["title"] = "**O script foi executado!**",
-            ["description"] = game.Players.LocalPlayer.DisplayName.." executou o script Aftermath ESP",
-            ["type"] = "rich",
-            ["color"] = tonumber(0xffffff),
-            ["fields"] = {{
-                ["name"] = "Hardware ID:",
-                ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
-                ["inline"] = true
-            }}
-        }}
-    })
-
-    local response = requestFunction({
-        Url = Webhook_URL,
-        Method = "POST",
-        Headers = {
-            ['Content-Type'] = "application/json"
-        },
-        Body = jsonBody
-    })
-
-    print("Response Status Code: ", response.StatusCode)
-    print("Response Body: ", response.Body)
-end
-
-local requestFunction = (syn and syn.request) or (http_request) or (request)
-if requestFunction then
-    sendRequest(requestFunction)
-else
-    warn("Nenhuma função de solicitação HTTP disponível.")
-end
-
 -- ESP
 local FillColor = Color3.fromRGB(204,0,204)
 local DepthMode = "AlwaysOnTop"
