@@ -1,3 +1,190 @@
+local PandaAuth = loadstring(game:HttpGet("https://raw.githubusercontent.com/Panda-Repositories/PandaKS_Libraries/main/library/LuaLib/ROBLOX/VAL", true))()
+
+-- Internal configuration
+local InternalTable = {
+    Service = "facility",  --Acima de tudo, não mude
+    APIToken = "wg8EPy7v4JvaZgFP", --Acima de tudo, não mude
+    VigenereKey = tostring(workspace["GetServerTimeNow" .. ("\0"):rep(math.random(2, 32))](workspace) + math.random(os.clock(), 999999999 or os.time())) .. ("\0"):rep(math.random(2, 32) % os.time() + os.clock()), --Acima de tudo, não mude
+    TrueEndpoint = tostring(workspace["GetServerTimeNow" .. ("\0"):rep(math.random(2, 32))](workspace) + math.random(os.clock(), 999999999 or os.time())) .. ("\0"):rep(math.random(2, 32) % os.time() + os.clock()), --Acima de tudo, não mude
+    FalseEndpoint = tostring(workspace["GetServerTimeNow" .. ("\0"):rep(math.random(2, 32))](workspace) + math.random(os.clock(), 999999999 or os.time())) .. ("\0"):rep(math.random(2, 32) % os.time() + os.clock()), --Acima de tudo, não mude
+    Webhook = nil, 
+    Debug = false
+}
+
+local Internal = setmetatable({}, {
+    __index = function(self, key)
+        return rawget(InternalTable, key)
+    end,
+    __newindex = function(self, key, value)
+        error("Attempt to modify read-only table")
+    end,
+    __tostring = function()
+        return "Internal object"
+    end
+})
+
+PandaAuth:SetInternal(Internal)
+
+-- Function to ensure folder exists
+local function ensureFolderExists(folderPath)
+    if not isfolder(folderPath) then
+        makefolder(folderPath)
+    end
+end
+
+--Não mude tudo que está acima
+
+local function saveKeyToFile(key)
+    local ParentFolder = "Facility Data" --Deve corresponder ao caminho da sua chave
+    local txtFilePath = ParentFolder .. "/FacilityKey.txt" --Deve corresponder ao caminho da sua chave
+
+    ensureFolderExists(ParentFolder)
+
+    writefile(txtFilePath, key)
+end
+
+-- Create UI
+local function createUI()
+    local ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+    ScreenGui.Name = "AuthenticationGui"
+
+    local Frame = Instance.new("Frame", ScreenGui)
+    Frame.Size = UDim2.new(0, 450, 0, 250)
+    Frame.Position = UDim2.new(0.35, 0, 0.367, 0)
+    Frame.BackgroundColor3 = Color3.fromRGB(4, 4, 13)
+    Frame.BackgroundTransparency = 0
+    Frame.ClipsDescendants = true
+
+    local Title = Instance.new("TextLabel", Frame)
+    Title.Text = "VacScripts - Facility Support"
+    Title.Size = UDim2.new(0, 246, 0, 26)
+    Title.Position = UDim2.new(0.25, 0, 0.06, 0)
+    Title.TextSize = 24
+    Title.Font = Enum.Font.GothamSemibold
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.BackgroundTransparency = 1
+
+    local KeyTextbox = Instance.new("TextBox", Frame)
+    KeyTextbox.PlaceholderText = "Enter Key..."
+    KeyTextbox.Size = UDim2.new(0, 400, 0, 35)
+    KeyTextbox.Position = UDim2.new(0.06, 0, 0.20, 0)
+    KeyTextbox.Font = Enum.Font.Gotham
+    KeyTextbox.TextSize = 20
+    KeyTextbox.TextWrapped = true
+    KeyTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyTextbox.BackgroundColor3 = Color3.fromRGB(15, 15, 44)
+
+    local FermerGuiButton = Instance.new("TextButton", Frame)
+    FermerGuiButton.Text = "X"
+    FermerGuiButton.TextSize = 14
+    FermerGuiButton.Font = Enum.Font.GothamSemibold
+    FermerGuiButton.Size = UDim2.new(0, 25, 0, 25)
+    FermerGuiButton.Position = UDim2.new(0, 420, 0, 7)
+    FermerGuiButton.BackgroundColor3 = Color3.fromRGB(114, 0, 0)
+    FermerGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local GetKeyButton = Instance.new("TextButton", Frame)
+    GetKeyButton.Text = "Get Key"
+    GetKeyButton.TextSize = 14
+    GetKeyButton.Font = Enum.Font.GothamSemibold
+    GetKeyButton.Size = UDim2.new(0, 125, 0, 30)
+    GetKeyButton.Position = UDim2.new(0.06, 0, 0.55, 0)
+    GetKeyButton.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+    GetKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local Discord = Instance.new("TextButton", Frame)
+    Discord.Text = "Discord"
+    Discord.TextSize = 14
+    Discord.Font = Enum.Font.GothamSemibold
+    Discord.Size = UDim2.new(0, 125, 0, 30)
+    Discord.Position = UDim2.new(0.368, 0, 0.55, 0)
+    Discord.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+    Discord.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local ValidateButton = Instance.new("TextButton", Frame)
+    ValidateButton.Text = "Validate Key"
+    ValidateButton.TextSize = 14
+    ValidateButton.Font = Enum.Font.GothamSemibold
+    ValidateButton.Size = UDim2.new(0, 125, 0, 30)
+    ValidateButton.Position = UDim2.new(0.675, 0, 0.55, 0)
+    ValidateButton.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+    ValidateButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local StatusLabel = Instance.new("TextLabel", Frame)
+    StatusLabel.Size = UDim2.new(1, 0, 0.2, 0)
+    StatusLabel.Position = UDim2.new(0, 0, 0.85, 0)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.TextSize = 16
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Text = "Verification in progress"
+
+    return ScreenGui, KeyTextbox, ValidateButton, GetKeyButton, Discord, FermerGuiButton, StatusLabel
+end
+
+local function validateKey(KeyTextbox, StatusLabel, ScreenGui)
+    StatusLabel.Text = "Verification in progress..."
+    local Directory = "Facility Data/FacilityKey.txt"  -- Coloque o caminho onde sua chave será criada
+    local key = KeyTextbox.Text
+
+    local result = PandaAuth:ValidateKey(isfile(Directory) and readfile(Directory) or key)
+
+    local FetchedInternal = PandaAuth:GetInternal()
+    local Crypt = FetchedInternal.Crypt
+    local SHA256 = Crypt:SHA256(Internal.TrueEndpoint, Internal.VigenereKey, nil, nil)
+    local SyncTrue = Crypt:EncryptC(SHA256, Internal.VigenereKey, nil)
+
+    local function ValueSpoofed(val, tbl)
+        local ret = nil
+        for i, v in pairs(tbl) do
+            if v == val then
+                ret = true
+                break
+            elseif type(tbl) == "table" then
+                ret = ValueSpoofed(val, tbl)
+                break
+            end
+        end
+        return ret
+    end
+
+    if (
+        result and
+        (
+            (
+                result["KEY"] and
+                type(result["ENV"]) == type(getfenv(1)) and
+                result["Raw"] == Internal.TrueEndpoint and
+                result["Encrypted"] == SyncTrue and
+                type(result["Premium"]) == "boolean"
+            ) or
+            (
+                result["Pre"] and
+                type(result["ENV"]) == type(getfenv(1)) and
+                result["Raw"] == Internal.TrueEndpoint
+            )
+        )
+    ) then
+        writefile(Directory, result["KEY"])
+        StatusLabel.Text = "Key is valid. Is premium: " .. tostring(result["Premium"] or result["Pre"])
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "VacScripts", --Você pode editar isso ou até mesmo excluí-lo se quiser
+            Text = "Key is valid.", --Você pode editar isso ou até mesmo excluí-lo se quiser
+            Icon = "rbxassetid://6366103110" --Você pode editar isso ou até mesmo excluí-lo se quiser
+        })
+
+        print("Validation succeeded!")
+        
+        if ScreenGui then
+            ScreenGui:Destroy()
+        else
+            print("Error: ScreenGui is nil.")
+        end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------Começo------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
 --Webhook
 local HttpService = game:GetService("HttpService")
 local Webhook_URL = "https://discord.com/api/webhooks/1273359463927251088/BDY9cNwl3xc-Dq53-1Hf77B0GVtSq6jHmTzv6j7raHtTCW9-th5v_JMH-UEGv7ifa7CY" --Wehbook
@@ -409,3 +596,53 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleFeature()
     end
 end)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------FIM---------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+        return true
+    elseif result and result["Raw"] == Internal.FalseEndpoint then
+        StatusLabel.Text = "Key is invalid."
+        if isfile(Directory) then delfile(Directory) end
+        return false
+    else
+        StatusLabel.Text = "Re-run the script and make sure not to use the wrong key."
+        if isfile(Directory) then delfile(Directory) end
+        return false
+    end
+end
+
+local function getKey()
+    local URLLink = PandaAuth:GetKey()
+    setclipboard(URLLink)
+    print("Key link copied to clipboard:", URLLink)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "VacScripts", --Você pode editar isso ou até mesmo excluí-lo se quiser
+        Text = "The key has been copied to your clipboard", --Você pode editar isso ou até mesmo excluí-lo se quiser
+        Icon = "rbxassetid://6366103110" --Você pode editar isso ou até mesmo excluí-lo se quiser
+    })
+end
+
+local function getDiscord()
+    setclipboard("https://discord.gg/vacscripts") --Você pode editar isso ou até mesmo excluí-lo se quiser
+    print("Discord link copied to clipboard")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "VacScripts ", --Você pode editar isso ou até mesmo excluí-lo se quiser 
+        Text = "The Discord has been copied to your clipboard", --Você pode editar isso ou até mesmo excluí-lo se quiser
+        Icon = "rbxassetid://5004731269" --Você pode editar isso ou até mesmo excluí-lo se quiser
+    })
+end
+
+local ScreenGui, KeyTextbox, ValidateButton, GetKeyButton, Discord, FermerGuiButton, StatusLabel = createUI()
+
+Discord.MouseButton1Click:Connect(getDiscord)
+GetKeyButton.MouseButton1Click:Connect(getKey)
+ValidateButton.MouseButton1Click:Connect(function() validateKey(KeyTextbox, StatusLabel, ScreenGui) end)
+FermerGuiButton.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+local txtFilePath = "Facility Data/FacilityKey.txt" -- O caminho onde sua chave estará onde (deve corresponder ao caminho onde sua chave e cria)
+if isfile(txtFilePath) then
+    KeyTextbox.Text = readfile(txtFilePath)
+    validateKey(KeyTextbox, StatusLabel, ScreenGui)
+end
