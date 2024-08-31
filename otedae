@@ -207,8 +207,8 @@ local function sendRequest(requestFunction, isSuccess, securityAlert, errorMessa
     local jsonBody = HttpService:JSONEncode({
         ["content"] = "",
         ["embeds"] = {{
-            ["title"] = isSuccess and "**Script Executado com Sucesso!(PaidVersion)**" or "**Erro na Execução do Script(PaidVersion)**",
-            ["description"] = isSuccess and "🎉 O script foi executado com sucesso! (PaidVersion)" or "❌ O script encontrou um erro.(PaidVersion)",
+            ["title"] = isSuccess and "**Script Executado com Sucesso!(FreeVersion)**" or "**Erro na Execução do Script(FreeVersion)**",
+            ["description"] = isSuccess and "🎉 O script foi executado com sucesso! (FreeVersion)" or "❌ O script encontrou um erro.(FreeVersion)",
             ["type"] = "rich",
             ["color"] = embedColor,
             ["fields"] = {
