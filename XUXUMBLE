@@ -783,3 +783,210 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
+
+-NoSmoke Nuclear
+
+local parentFolder = game.Workspace:FindFirstChild("world_assets")
+if not parentFolder then
+    warn("Pasta 'world_assets' não encontrada.")
+    return
+end
+
+local staticObjectsFolder = parentFolder:FindFirstChild("StaticObjects")
+if not staticObjectsFolder then
+    warn("Pasta 'StaticObjects' não encontrada.")
+    return
+end
+
+local miscFolder = staticObjectsFolder:FindFirstChild("Misc")
+if not miscFolder then
+    warn("Pasta 'Misc' não encontrada.")
+    return
+end
+
+local tosicFolder = miscFolder:FindFirstChild("TOSIC")
+if not tosicFolder then
+    warn("Pasta 'TOSIC' não encontrada.")
+    return
+end
+
+-- Encontre o Group 'Model'
+local modelGroup = tosicFolder:FindFirstChild("Model")
+if not modelGroup or not modelGroup:IsA("Model") then
+    warn("O 'Model' não foi encontrado ou não é um Model.")
+    return
+end
+
+-- Encontre a Part 'TOXIC_BILLBOARD'
+local toxicBillboardPart = modelGroup:FindFirstChild("TOXIC_BILLBOARD")
+if not toxicBillboardPart or not toxicBillboardPart:IsA("BasePart") then
+    warn("A Part 'TOXIC_BILLBOARD' não foi encontrada.")
+    return
+end
+
+-- Encontre o BillboardGui dentro da Part
+local billboardGui = toxicBillboardPart:FindFirstChildOfClass("BillboardGui")
+if not billboardGui then
+    warn("BillboardGui não encontrada na Part 'TOXIC_BILLBOARD'.")
+    return
+end
+
+-- Encontre o ToxicBillboardAnimator dentro do BillboardGui
+local toxicBillboardAnimator = billboardGui:FindFirstChild("ToxicBillboardAnimator")
+if not toxicBillboardAnimator then
+    warn("ToxicBillboardAnimator não encontrado no BillboardGui.")
+    return
+end
+
+-- Desative o ToxicBillboardAnimator
+toxicBillboardAnimator.Enabled = false
+
+print("ToxicBillboardAnimator desativado.")
+
+-- Desative a pasta TOSIC
+tosicFolder.Parent = nil -- Remove a pasta do Workspace
+
+print("Pasta 'TOSIC' desativada.")
+
+-- Função para encontrar uma pasta e emitir aviso se não encontrada
+local function findFolder(name, parent)
+    local folder = parent:FindFirstChild(name)
+    return folder
+end
+
+-- Função para tornar a Mesh chamada 'Leaves' invisível dentro dos grupos
+local function makeLeavesInvisible(groupsFolder, leavesName)
+    for , group in ipairs(groupsFolder:GetChildren()) do
+        if group:IsA("Model") then
+            local leaves = group:FindFirstChild(leavesName)
+            if leaves then
+                -- Torna a Mesh chamada 'Leaves' invisível
+                if leaves:IsA("MeshPart") then
+                    leaves.Transparency = 1 -- Torna a Mesh invisível
+                    leaves.CanCollide = false -- Opcional: Desativa a colisão
+                elseif leaves:IsA("Folder") then
+                    -- Se o 'Leaves' for uma pasta, percorra seus filhos
+                    for , child in ipairs(leaves:GetChildren()) do
+                        if child:IsA("MeshPart") then
+                            child.Transparency = 1
+                            child.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Função para garantir que todos os objetos sejam processados
+local function processAllObjects()
+    local workspace = game:GetService("Workspace")
+    local worldAssets = findFolder("world_assets", workspace)
+    local staticObjects = findFolder("StaticObjects", worldAssets)
+    local treesFolder = findFolder("Trees", staticObjects)
+
+    if not treesFolder then
+        return
+    end
+
+    -- Nome do arquivo a ser tornado invisível
+    local leavesName = "Leaves"
+
+    -- Torne a Mesh chamada 'Leaves' invisível dentro dos grupos na pasta 'Trees'
+    makeLeavesInvisible(treesFolder, leavesName)
+end
+
+-- Adiciona um delay para garantir que todos os objetos sejam carregados antes de processar
+wait(5)  -- Ajuste o tempo conforme necessário para garantir que o mapa esteja completamente carregado
+
+processAllObjects()
+
+--Tirar Folhas
+-- Função para desativar o ToxicBillboardAnimator e a pasta TOSIC
+local function disableToxicAssets()
+    -- Defina o caminho para a pasta
+    local parentFolder = game.Workspace:FindFirstChild("world_assets")
+    if not parentFolder then
+        warn("Pasta 'world_assets' não encontrada.")
+        return
+    end
+
+    local staticObjectsFolder = parentFolder:FindFirstChild("StaticObjects")
+    if not staticObjectsFolder then
+        warn("Pasta 'StaticObjects' não encontrada.")
+        return
+    end
+
+    local miscFolder = staticObjectsFolder:FindFirstChild("Misc")
+    if not miscFolder then
+        warn("Pasta 'Misc' não encontrada.")
+        return
+    end
+
+    local tosicFolder = miscFolder:FindFirstChild("TOSIC")
+    if not tosicFolder then
+        warn("Pasta 'TOSIC' não encontrada.")
+        return
+    end
+
+    -- Encontre o Group 'Model'
+    local modelGroup = tosicFolder:FindFirstChild("Model")
+    if not modelGroup or not modelGroup:IsA("Model") then
+        warn("O 'Model' não foi encontrado ou não é um Model.")
+        return
+    end
+
+    -- Encontre a Part 'TOXIC_BILLBOARD'
+    local toxicBillboardPart = modelGroup:FindFirstChild("TOXIC_BILLBOARD")
+    if not toxicBillboardPart or not toxicBillboardPart:IsA("BasePart") then
+        warn("A Part 'TOXIC_BILLBOARD' não foi encontrada.")
+        return
+    end
+
+    -- Encontre o BillboardGui dentro da Part
+    local billboardGui = toxicBillboardPart:FindFirstChildOfClass("BillboardGui")
+    if not billboardGui then
+        warn("BillboardGui não encontrada na Part 'TOXIC_BILLBOARD'.")
+        return
+    end
+
+    -- Encontre o ToxicBillboardAnimator dentro do BillboardGui
+    local toxicBillboardAnimator = billboardGui:FindFirstChild("ToxicBillboardAnimator")
+    if not toxicBillboardAnimator then
+        warn("ToxicBillboardAnimator não encontrado no BillboardGui.")
+        return
+    end
+
+    -- Desative o ToxicBillboardAnimator
+    toxicBillboardAnimator.Enabled = false
+
+    print("ToxicBillboardAnimator desativado.")
+
+    -- Desative a pasta TOSIC
+    tosicFolder.Parent = nil -- Remove a pasta do Workspace
+
+    print("Pasta 'TOSIC' desativada.")
+end
+
+-- Reaplica as alterações sempre que o personagem do jogador é respawnado
+local player = game.Players.LocalPlayer
+
+-- Conecta o evento CharacterAdded para reaplicar as alterações quando o personagem respawnar
+player.CharacterAdded:Connect(function(character)
+    -- Aguarda um pequeno tempo para garantir que o personagem e o ambiente estejam carregados
+    wait(1)
+    print("Personagem adicionado, reaplicando alterações...")
+    disableToxicAssets()
+end)
+
+-- Se o personagem já estiver presente, aplica as alterações imediatamente
+if player.Character then
+    print("Personagem já presente, aplicando alterações...")
+    disableToxicAssets()
+end
+
+-- Adicione um loop para reaplicar as alterações a cada 5 segundos
+while true do
+    disableToxicAssets()
+    wait(5) -- Aguarda 5 segundos antes de reaplicar
+end
