@@ -932,7 +932,7 @@ end)
 -- Inicia o processo de ESP
 iniciarESP()
 
-wait(5)
+wait(10)
 -- TIRAR FOLHAS
 
 -- Substitua todas as strings usadas para acessar serviços e objetos por variáveis locais
