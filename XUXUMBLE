@@ -784,256 +784,150 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
---NO SMOKE
+-- ChineseZombie
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
--- Função para desativar o ToxicBillboardAnimator e a pasta TOSIC
-local function disableToxicAssets()
-    -- Defina o caminho para a pasta
-    local parentFolder = game.Workspace:FindFirstChild("world_assets")
-    if not parentFolder then
-        warn("Pasta 'world_assets' não encontrada.")
-        return
-    end
+-- Equipamento alvo para o ESP (somente BalaclavaFSB)
+local equipamentoAlvo = "BalaclavaFSB"
+local espAtivado = true -- Controla o estado de ativação/desativação do ESP
+local espGuiList = {} -- Lista para armazenar todas as GUI criadas
 
-    local staticObjectsFolder = parentFolder:FindFirstChild("StaticObjects")
-    if not staticObjectsFolder then
-        warn("Pasta 'StaticObjects' não encontrada.")
-        return
-    end
+-- Intervalo de atualização para reduzir a carga
+local updateInterval = 1  -- Atualiza a cada 1 segundo para reduzir o lag
 
-    local miscFolder = staticObjectsFolder:FindFirstChild("Misc")
-    if not miscFolder then
-        warn("Pasta 'Misc' não encontrada.")
-        return
-    end
-
-    local tosicFolder = miscFolder:FindFirstChild("TOSIC")
-    if not tosicFolder then
-        warn("Pasta 'TOSIC' não encontrada.")
-        return
-    end
-
-    -- Encontre o Group 'Model'
-    local modelGroup = tosicFolder:FindFirstChild("Model")
-    if not modelGroup or not modelGroup:IsA("Model") then
-        warn("O 'Model' não foi encontrado ou não é um Model.")
-        return
-    end
-
-    -- Encontre a Part 'TOXIC_BILLBOARD'
-    local toxicBillboardPart = modelGroup:FindFirstChild("TOXIC_BILLBOARD")
-    if not toxicBillboardPart or not toxicBillboardPart:IsA("BasePart") then
-        warn("A Part 'TOXIC_BILLBOARD' não foi encontrada.")
-        return
-    end
-
-    -- Encontre o BillboardGui dentro da Part
-    local billboardGui = toxicBillboardPart:FindFirstChildOfClass("BillboardGui")
-    if not billboardGui then
-        warn("BillboardGui não encontrada na Part 'TOXIC_BILLBOARD'.")
-        return
-    end
-
-    -- Encontre o ToxicBillboardAnimator dentro do BillboardGui
-    local toxicBillboardAnimator = billboardGui:FindFirstChild("ToxicBillboardAnimator")
-    if not toxicBillboardAnimator then
-        warn("ToxicBillboardAnimator não encontrado no BillboardGui.")
-        return
-    end
-
-    -- Desative o ToxicBillboardAnimator
-    toxicBillboardAnimator.Enabled = false
-
-    print("ToxicBillboardAnimator desativado.")
-
-    -- Desative a pasta TOSIC
-    tosicFolder.Parent = nil -- Remove a pasta do Workspace
-
-    print("Pasta 'TOSIC' desativada.")
-end
-
--- Reaplica as alterações sempre que o personagem do jogador é respawnado
-local player = game.Players.LocalPlayer
-
--- Conecta o evento CharacterAdded para reaplicar as alterações quando o personagem respawnar
-player.CharacterAdded:Connect(function(character)
-    -- Aguarda um pequeno tempo para garantir que o personagem e o ambiente estejam carregados
-    wait(1)
-    print("Personagem adicionado, reaplicando alterações...")
-    disableToxicAssets()
-end)
-
--- Se o personagem já estiver presente, aplica as alterações imediatamente
-if player.Character then
-    print("Personagem já presente, aplicando alterações...")
-    disableToxicAssets()
-end
-
--- Adicione um loop para reaplicar as alterações a cada 5 segundos
-while true do
-    disableToxicAssets()
-    wait(5) -- Aguarda 5 segundos antes de reaplicar
-end
-
--- TIRAR FOLHAS
-
--- Função para encontrar uma pasta e emitir aviso se não encontrada
-local function findFolder(name, parent)
-    local folder = parent:FindFirstChild(name)
-    if not folder then
-        warn("Pasta não encontrada: " .. name)
-    end
-    return folder
-end
-
--- Função para tornar a Mesh chamada 'Leaves' invisível dentro dos grupos
-local function makeLeavesInvisible(groupsFolder, leavesName)
-    for _, group in ipairs(groupsFolder:GetChildren()) do
-        if group:IsA("Model") then
-            local leaves = group:FindFirstChild(leavesName)
-            if leaves then
-                -- Torna a Mesh chamada 'Leaves' invisível
-                if leaves:IsA("MeshPart") then
-                    leaves.Transparency = 1 -- Torna a Mesh invisível
-                    leaves.CanCollide = false -- Opcional: Desativa a colisão
-                elseif leaves:IsA("Folder") then
-                    -- Se o 'Leaves' for uma pasta, percorra seus filhos
-                    for _, child in ipairs(leaves:GetChildren()) do
-                        if child:IsA("MeshPart") then
-                            child.Transparency = 1
-                            child.CanCollide = false
-                        end
-                    end
-                end
-            end
+-- Função para remover todas as GUIs quando o jogador ou equipamento for removido
+local function removerGUIs()
+    for _, gui in pairs(espGuiList) do
+        if gui then
+            gui:Destroy()  -- Remove as GUIs antigas
         end
     end
+    espGuiList = {}  -- Limpa a lista
 end
 
--- Função para garantir que todos os objetos sejam processados
-local function processAllObjects()
-    local workspace = game:GetService("Workspace")
-    local worldAssets = findFolder("world_assets", workspace)
-    local staticObjects = findFolder("StaticObjects", worldAssets)
-    local treesFolder = findFolder("Trees", staticObjects)
+-- Função para criar ESP (sem exibir studs/distance para melhorar o desempenho)
+local function criarESPParaEquipamento(equipamento)
+    local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
 
-    if not treesFolder then
+    -- Se não houver rootPart, não crie a GUI
+    if not rootPart then
         return
     end
 
-    -- Nome do arquivo a ser tornado invisível
-    local leavesName = "Leaves"
+    -- Verifica se o equipamento já tem um ESP aplicado
+    if rootPart:FindFirstChild("ESPGui") then
+        return  -- Evita recriar GUIs
+    end
 
-    -- Torne a Mesh chamada 'Leaves' invisível dentro dos grupos na pasta 'Trees'
-    makeLeavesInvisible(treesFolder, leavesName)
+    -- Criação do BillboardGui para o ESP
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "ESPGui"
+    gui.Adornee = rootPart
+    gui.Size = UDim2.new(0, 100, 0, 50) -- Tamanho do ESP
+    gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
+    gui.AlwaysOnTop = true  -- Garantir que o ESP sempre apareça acima de outros objetos
+    gui.Parent = rootPart
+    table.insert(espGuiList, gui) -- Armazena na lista para controle de ativação/desativação
+
+    -- Criação da Label para exibir o nome "ChineseZombie"
+    local nomeLabel = Instance.new("TextLabel", gui)
+    nomeLabel.BackgroundTransparency = 1
+    nomeLabel.Size = UDim2.new(1, 0, 1, 0)
+    nomeLabel.TextColor3 = Color3.new(1, 0, 0) -- Texto vermelho
+    nomeLabel.Font = Enum.Font.SourceSansBold
+    nomeLabel.TextScaled = true
+    nomeLabel.Text = "ChineseZombie"
 end
 
--- Reaplica as alterações sempre que o personagem do jogador é respawnado
-local player = game.Players.LocalPlayer
+-- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
+local function verificarEAplicarESP(entidade)
+    -- Verifica se o nome da entidade corresponde ao equipamento alvo
+    if string.find(entidade.Name, equipamentoAlvo) then
+        criarESPParaEquipamento(entidade)
+    end
+end
 
--- Espera pelo personagem do jogador e aplica as alterações
-player.CharacterAdded:Connect(function(character)
-    -- Aguarda um pequeno tempo para garantir que o personagem e o ambiente estejam carregados
-    wait(1)
-    processAllObjects()
+-- Função para verificar pastas específicas e procurar pelo equipamento alvo
+local function verificarPasta(pasta)
+    for _, entidade in pairs(pasta:GetDescendants()) do
+        verificarEAplicarESP(entidade)
+    end
+end
+
+-- Monitorar novas entidades adicionadas ao jogo (Workspace e ReplicatedStorage)
+local function monitorarNovasEntidades()
+    -- Verifica novas entidades adicionadas no Workspace
+    Workspace.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+
+    -- Verifica novas entidades adicionadas no ReplicatedStorage
+    ReplicatedStorage.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+end
+
+-- Função para monitorar a mudança de equipamentos no jogador
+local function monitorarMudancasDeEquipamento()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+    -- Monitorar mudanças no personagem
+    character.ChildAdded:Connect(function(item)
+        -- Verifica se o item recém-adicionado é o equipamento alvo
+        verificarEAplicarESP(item)
+    end)
+
+    character.ChildRemoved:Connect(function(item)
+        -- Se o equipamento foi removido, remove o ESP
+        if item.Name == equipamentoAlvo then
+            removerGUIs()  -- Remove o ESP quando o equipamento alvo é removido
+        end
+    end)
+end
+
+-- Função principal para rodar a busca inicial e monitorar novas adições
+local function iniciarESP()
+    removerGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
+    -- Verifica inicialmente os equipamentos já existentes no Workspace e ReplicatedStorage
+    verificarPasta(Workspace)
+    verificarPasta(ReplicatedStorage)
+
+    -- Monitora adições futuras de entidades no jogo
+    monitorarNovasEntidades()
+
+    -- Monitora as mudanças de equipamento no personagem
+    monitorarMudancasDeEquipamento()
+end
+
+-- Função para ativar/desativar o ESP
+local function alternarESP()
+    espAtivado = not espAtivado
+    for _, gui in pairs(espGuiList) do
+        gui.Enabled = espAtivado -- Ativa/desativa todas as GUIs criadas
+    end
+    if espAtivado then
+        print("ESP ativado")
+    else
+        print("ESP desativado")
+    end
+end
+
+-- Função para detectar a tecla F1 e alternar o ESP
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F1 then
+        alternarESP()
+    end
 end)
 
--- Se o personagem já estiver presente, aplica as alterações imediatamente
-if player.Character then
-    processAllObjects()
-end
-
--- Loop para reaplicar as alterações a cada 5 segundos
-while true do
-    wait(5) -- Espera 5 segundos
-    processAllObjects()
-end
-
--- Função para desativar o ToxicBillboardAnimator e a pasta TOSIC
-local function disableToxicAssets()
-    -- Defina o caminho para a pasta
-    local parentFolder = game.Workspace:FindFirstChild("world_assets")
-    if not parentFolder then
-        warn("Pasta 'world_assets' não encontrada.")
-        return
-    end
-
-    local staticObjectsFolder = parentFolder:FindFirstChild("StaticObjects")
-    if not staticObjectsFolder then
-        warn("Pasta 'StaticObjects' não encontrada.")
-        return
-    end
-
-    local miscFolder = staticObjectsFolder:FindFirstChild("Misc")
-    if not miscFolder then
-        warn("Pasta 'Misc' não encontrada.")
-        return
-    end
-
-    local tosicFolder = miscFolder:FindFirstChild("TOSIC")
-    if not tosicFolder then
-        warn("Pasta 'TOSIC' não encontrada.")
-        return
-    end
-
-    -- Encontre o Group 'Model'
-    local modelGroup = tosicFolder:FindFirstChild("Model")
-    if not modelGroup or not modelGroup:IsA("Model") then
-        warn("O 'Model' não foi encontrado ou não é um Model.")
-        return
-    end
-
-    -- Encontre a Part 'TOXIC_BILLBOARD'
-    local toxicBillboardPart = modelGroup:FindFirstChild("TOXIC_BILLBOARD")
-    if not toxicBillboardPart or not toxicBillboardPart:IsA("BasePart") then
-        warn("A Part 'TOXIC_BILLBOARD' não foi encontrada.")
-        return
-    end
-
-    -- Encontre o BillboardGui dentro da Part
-    local billboardGui = toxicBillboardPart:FindFirstChildOfClass("BillboardGui")
-    if not billboardGui then
-        warn("BillboardGui não encontrada na Part 'TOXIC_BILLBOARD'.")
-        return
-    end
-
-    -- Encontre o ToxicBillboardAnimator dentro do BillboardGui
-    local toxicBillboardAnimator = billboardGui:FindFirstChild("ToxicBillboardAnimator")
-    if not toxicBillboardAnimator then
-        warn("ToxicBillboardAnimator não encontrado no BillboardGui.")
-        return
-    end
-
-    -- Desative o ToxicBillboardAnimator
-    toxicBillboardAnimator.Enabled = false
-
-    print("ToxicBillboardAnimator desativado.")
-
-    -- Desative a pasta TOSIC
-    tosicFolder.Parent = nil -- Remove a pasta do Workspace
-
-    print("Pasta 'TOSIC' desativada.")
-end
-
--- Reaplica as alterações sempre que o personagem do jogador é respawnado
-local player = game.Players.LocalPlayer
-
--- Conecta o evento CharacterAdded para reaplicar as alterações quando o personagem respawnar
-player.CharacterAdded:Connect(function(character)
-    -- Aguarda um pequeno tempo para garantir que o personagem e o ambiente estejam carregados
-    wait(1)
-    print("Personagem adicionado, reaplicando alterações...")
-    disableToxicAssets()
+-- Monitora o reset do jogador para remover GUIs antigas e reaplicar ESP
+LocalPlayer.CharacterAdded:Connect(function()
+    removerGUIs()  -- Remove GUIs antigas quando o jogador reseta
+    monitorarMudancasDeEquipamento()  -- Reaplica monitoramento após o reset
 end)
 
--- Se o personagem já estiver presente, aplica as alterações imediatamente
-if player.Character then
-    print("Personagem já presente, aplicando alterações...")
-    disableToxicAssets()
-end
-
--- Adicione um loop para reaplicar as alterações a cada 5 segundos
-while true do
-    disableToxicAssets()
-    wait(5) -- Aguarda 5 segundos antes de reaplicar
-end
+-- Inicia o processo de ESP
+iniciarESP()
