@@ -783,28 +783,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
-
--- Função para desativar as nuvens
-local function desativarNuvens()
-    -- Obtém o serviço Terrain
-    local terrain = game:GetService("Workspace"):FindFirstChildOfClass("Terrain")
-
-    -- Verifica se o serviço Terrain foi encontrado
-    if terrain then
-        -- Verifica se o objeto Clouds existe
-        local clouds = terrain:FindFirstChild("Clouds")
-
-        if clouds then
-            -- Desativa a propriedade Clouds
-            clouds.Enabled = false
-            print("Nuvens desativadas.")
-        else
-            print("Erro: Não foi possível encontrar o objeto Clouds no Terrain.")
-        end
-    else
-        print("Erro: Não foi possível encontrar o serviço Terrain.")
-    end
-end
-
--- Chama a função para desativar as nuvens
-desativarNuvens()
