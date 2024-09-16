@@ -916,9 +916,9 @@ local function alternarESP()
     end
 end
 
--- Função para detectar a tecla F1 e alternar o ESP
+-- Função para detectar a tecla F7 e alternar o ESP
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F1 then
+    if input.KeyCode == Enum.KeyCode.F7 then
         alternarESP()
     end
 end)
