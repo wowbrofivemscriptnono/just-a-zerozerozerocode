@@ -976,7 +976,6 @@ while true do
     processAllObjects()
 end
 
-----------------------------------
 -- Função para desativar o ToxicBillboardAnimator e a pasta TOSIC
 local function disableToxicAssets()
     -- Defina o caminho para a pasta
