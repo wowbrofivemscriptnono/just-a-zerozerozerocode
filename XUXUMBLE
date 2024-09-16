@@ -1065,3 +1065,151 @@ while true do
     disableToxicAssets()
     wait(5) -- Aguarda 5 segundos antes de reaplicar
 end
+
+-- Serviços necessários
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Equipamento alvo para o ESP (somente BalaclavaFSB)
+local equipamentoAlvo = "BalaclavaFSB"
+local espAtivado = true -- Controla o estado de ativação/desativação do ESP
+local espGuiList = {} -- Lista para armazenar todas as GUI criadas
+
+-- Intervalo de atualização para reduzir a carga
+local updateInterval = 1  -- Atualiza a cada 1 segundo para reduzir o lag
+
+-- Função para remover todas as GUIs quando o jogador ou equipamento for removido
+local function removerGUIs()
+    for _, gui in pairs(espGuiList) do
+        if gui then
+            gui:Destroy()  -- Remove as GUIs antigas
+        end
+    end
+    espGuiList = {}  -- Limpa a lista
+end
+
+-- Função para criar ESP (sem exibir studs/distance para melhorar o desempenho)
+local function criarESPParaEquipamento(equipamento)
+    local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
+
+    -- Se não houver rootPart, não crie a GUI
+    if not rootPart then
+        return
+    end
+
+    -- Verifica se o equipamento já tem um ESP aplicado
+    if rootPart:FindFirstChild("ESPGui") then
+        return  -- Evita recriar GUIs
+    end
+
+    -- Criação do BillboardGui para o ESP
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "ESPGui"
+    gui.Adornee = rootPart
+    gui.Size = UDim2.new(0, 100, 0, 50) -- Tamanho do ESP
+    gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
+    gui.AlwaysOnTop = true  -- Garantir que o ESP sempre apareça acima de outros objetos
+    gui.Parent = rootPart
+    table.insert(espGuiList, gui) -- Armazena na lista para controle de ativação/desativação
+
+    -- Criação da Label para exibir o nome "ChineseZombie"
+    local nomeLabel = Instance.new("TextLabel", gui)
+    nomeLabel.BackgroundTransparency = 1
+    nomeLabel.Size = UDim2.new(1, 0, 1, 0)
+    nomeLabel.TextColor3 = Color3.new(1, 0, 0) -- Texto vermelho
+    nomeLabel.Font = Enum.Font.SourceSansBold
+    nomeLabel.TextScaled = true
+    nomeLabel.Text = "ChineseZombie"
+end
+
+-- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
+local function verificarEAplicarESP(entidade)
+    -- Verifica se o nome da entidade corresponde ao equipamento alvo
+    if string.find(entidade.Name, equipamentoAlvo) then
+        criarESPParaEquipamento(entidade)
+    end
+end
+
+-- Função para verificar pastas específicas e procurar pelo equipamento alvo
+local function verificarPasta(pasta)
+    for _, entidade in pairs(pasta:GetDescendants()) do
+        verificarEAplicarESP(entidade)
+    end
+end
+
+-- Monitorar novas entidades adicionadas ao jogo (Workspace e ReplicatedStorage)
+local function monitorarNovasEntidades()
+    -- Verifica novas entidades adicionadas no Workspace
+    Workspace.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+
+    -- Verifica novas entidades adicionadas no ReplicatedStorage
+    ReplicatedStorage.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+end
+
+-- Função para monitorar a mudança de equipamentos no jogador
+local function monitorarMudancasDeEquipamento()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+    -- Monitorar mudanças no personagem
+    character.ChildAdded:Connect(function(item)
+        -- Verifica se o item recém-adicionado é o equipamento alvo
+        verificarEAplicarESP(item)
+    end)
+
+    character.ChildRemoved:Connect(function(item)
+        -- Se o equipamento foi removido, remove o ESP
+        if item.Name == equipamentoAlvo then
+            removerGUIs()  -- Remove o ESP quando o equipamento alvo é removido
+        end
+    end)
+end
+
+-- Função principal para rodar a busca inicial e monitorar novas adições
+local function iniciarESP()
+    removerGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
+    -- Verifica inicialmente os equipamentos já existentes no Workspace e ReplicatedStorage
+    verificarPasta(Workspace)
+    verificarPasta(ReplicatedStorage)
+
+    -- Monitora adições futuras de entidades no jogo
+    monitorarNovasEntidades()
+
+    -- Monitora as mudanças de equipamento no personagem
+    monitorarMudancasDeEquipamento()
+end
+
+-- Função para ativar/desativar o ESP
+local function alternarESP()
+    espAtivado = not espAtivado
+    for _, gui in pairs(espGuiList) do
+        gui.Enabled = espAtivado -- Ativa/desativa todas as GUIs criadas
+    end
+    if espAtivado then
+        print("ESP ativado")
+    else
+        print("ESP desativado")
+    end
+end
+
+-- Função para detectar a tecla F7 e alternar o ESP
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F7 then
+        alternarESP()
+    end
+end)
+
+-- Monitora o reset do jogador para remover GUIs antigas e reaplicar ESP
+LocalPlayer.CharacterAdded:Connect(function()
+    removerGUIs()  -- Remove GUIs antigas quando o jogador reseta
+    monitorarMudancasDeEquipamento()  -- Reaplica monitoramento após o reset
+end)
+
+-- Inicia o processo de ESP
+iniciarESP()
