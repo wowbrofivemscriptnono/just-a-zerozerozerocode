@@ -516,337 +516,100 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Radar Script
-
-local FillColor = Color3.fromRGB(204, 0, 0) -- Cor para outros jogadores
-local SelfColor = Color3.fromRGB(0, 255, 0) -- Cor para o jogador local
-local ArrowColor = Color3.fromRGB(0, 255, 0) -- Cor da seta de direção
-local RadarSize = Vector2.new(250, 250) -- Tamanho do radar
-local RadarPosition = Vector2.new(50, 50) -- Posição do radar na tela
-local RadarTransparency = 0.8 -- Transparência do fundo do radar
-local RadarScale = 0.05 -- Escala do radar
-local MaxDistance = 5000 -- Distância máxima para exibir jogadores (em studs)
-local PlayerNameYOffset = 15 -- Distância entre a bolinha e o nome do jogador
-local RGBSpeed = 1 -- Velocidade de mudança do RGB
-local radarEnabled = true -- Estado inicial do radar (ativo)
-
--- Importar o UserInputService para capturar teclas
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Client = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
--- Função para criar a seta de direção com pontas mais precisas
-local function drawArrow(position, direction, size, color)
-    local arrow = Drawing.new("Triangle")
-    local base = position + direction * -size / 2
-    local pointA = base + direction * size
-    local pointB = base + Vector2.new(-direction.Y, direction.X) * size * 0.5
-    local pointC = base + Vector2.new(direction.Y, -direction.X) * size * 0.5
-    arrow.PointA = pointA
-    arrow.PointB = pointB
-    arrow.PointC = pointC
-    arrow.Color = color
-    arrow.Filled = true
-    arrow.Visible = true
-    return arrow
-end
-
--- Criação do fundo do radar com borda arredondada e gradiente
-local RadarBackground = Drawing.new("Circle")
-RadarBackground.Radius = RadarSize.X / 2
-RadarBackground.Position = RadarPosition + Vector2.new(RadarSize.X / 2, RadarSize.Y / 2)
-RadarBackground.Filled = true
-RadarBackground.Transparency = RadarTransparency
-RadarBackground.Color = Color3.fromRGB(30, 30, 30) -- Fundo moderno e suave
-RadarBackground.ZIndex = 0 -- Fundo deve estar atrás de tudo
-RadarBackground.Visible = true
-
--- Função para calcular a cor RGB dinâmica (para borda de gradiente animada)
-local function calculateRGBColor(tickValue)
-    local r = math.abs(math.sin(RGBSpeed * tickValue))
-    local g = math.abs(math.sin(RGBSpeed * tickValue + 2))
-    local b = math.abs(math.sin(RGBSpeed * tickValue + 4))
-    return Color3.new(r, g, b)
-end
-
--- Borda do radar ajustada para ficar colada ao minimapa
-local RadarBorder = Drawing.new("Circle")
-RadarBorder.Radius = RadarBackground.Radius + 1 -- Colada ao radar
-RadarBorder.Position = RadarBackground.Position
-RadarBorder.Filled = false
-RadarBorder.Thickness = 4
-RadarBorder.Color = calculateRGBColor(tick()) -- Cor RGB que muda dinamicamente
-RadarBorder.ZIndex = 1 -- Borda logo acima do fundo
-RadarBorder.Visible = true
-
--- Desenha o marcador do jogador local (você) no centro do radar
-local SelfMarker = Drawing.new("Circle")
-SelfMarker.Color = SelfColor
-SelfMarker.Radius = 6
-SelfMarker.Filled = true
-SelfMarker.Position = RadarBackground.Position
-SelfMarker.ZIndex = 2 -- Marcador do jogador local deve estar por cima
-SelfMarker.Visible = true
-
--- Inicializamos a seta do jogador local
-local DirectionArrow = drawArrow(SelfMarker.Position, Vector2.new(1, 0), 20, ArrowColor)
-
--- Função para alinhar a seta com a direção correta
-local function updateArrowDirection(lookVector)
-    if DirectionArrow then
-        -- Calcular a direção correta da seta
-        local arrowDirection = Vector2.new(lookVector.X, -lookVector.Z).Unit
-
-        -- Atualizar a seta para que a ponta esteja alinhada com o radar
-        DirectionArrow.PointA = SelfMarker.Position + arrowDirection * 20
-        DirectionArrow.PointB = SelfMarker.Position + Vector2.new(-arrowDirection.Y, arrowDirection.X) * 10
-        DirectionArrow.PointC = SelfMarker.Position + Vector2.new(arrowDirection.Y, -arrowDirection.X) * 10
-    end
-end
-
--- Tabela para armazenar os objetos desenhados de cada jogador
-local playerDrawings = {}
-
--- Função para obter o HumanoidRootPart de um jogador
-local function getHumanoidRootPart(character)
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        return character.HumanoidRootPart
-    end
-    return nil
-end
-
--- Função para calcular a posição no radar com base na posição relativa entre o jogador e os outros jogadores
-local function calculateRadarPosition(playerPosition, clientPosition)
-    -- Calcular a posição relativa (jogador - client), ignorando a rotação da câmera
-    local relativePosition = (playerPosition - clientPosition) * Vector3.new(1, 0, 1) -- Ignorar altura (Y)
-
-    -- Escalar a posição no radar (radar fixo)
-    local radarX = relativePosition.X * RadarScale
-    local radarY = -relativePosition.Z * RadarScale
-
-    -- Verificar se o jogador está fora do radar (limite do círculo)
-    local maxRadius = RadarBackground.Radius
-    local distanceFromCenter = math.sqrt(radarX^2 + radarY^2)
-    
-    if distanceFromCenter > maxRadius then
-        -- Limitar a posição na borda do radar, mantendo a direção
-        local scaleFactor = maxRadius / distanceFromCenter
-        radarX = radarX * scaleFactor
-        radarY = radarY * scaleFactor
-    end
-
-    -- Centralizar no radar
-    radarX = RadarBackground.Position.X + radarX
-    radarY = RadarBackground.Position.Y + radarY
-
-    return Vector2.new(radarX, radarY)
-end
-
--- Função para configurar o radar para um jogador
-local function setupPlayerDrawing(player)
-    if playerDrawings[player] then return end -- Não recriar se já existir
-    
-    local radarPoint = Drawing.new("Circle")
-    radarPoint.Color = FillColor
-    radarPoint.Radius = 5
-    radarPoint.Filled = true
-    radarPoint.ZIndex = 2 -- Garantir que as bolas dos jogadores estejam por cima do radar
-    radarPoint.Visible = false
-    
-    local playerNameText = Drawing.new("Text")
-    playerNameText.Size = 13
-    playerNameText.Color = Color3.new(1, 1, 1)
-    playerNameText.Center = true
-    playerNameText.ZIndex = 3 -- Nome do jogador por cima de tudo
-    playerNameText.Visible = false
-
-    playerDrawings[player] = {
-        radarPoint = radarPoint,
-        playerNameText = playerNameText
-    }
-
-    -- Verificar quando o jogador morre ou sai do jogo
-    player.CharacterAdded:Connect(function(character)
-        local humanoid = character:WaitForChild("Humanoid")
-        humanoid.Died:Connect(function()
-            removePlayerDrawing(player)
-        end)
-    end)
-
-    player.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            removePlayerDrawing(player)
-        end
-    end)
-end
-
--- Função para remover desenhos de um jogador
-local function removePlayerDrawing(player)
-    if playerDrawings[player] then
-        playerDrawings[player].radarPoint:Remove()
-        playerDrawings[player].playerNameText:Remove()
-        playerDrawings[player] = nil
-    end
-end
-
--- Função para atualizar o radar de um jogador
-local function updateRadarForPlayer(player)
-    if not radarEnabled then return end -- Verificar se o radar está ativo
-
-    local character = player.Character
-    if not character or not playerDrawings[player] then return end
-
-    local root = getHumanoidRootPart(character)
-    local clientRoot = getHumanoidRootPart(Client.Character)
-
-    if root and clientRoot then
-        local distance = (root.Position - clientRoot.Position).Magnitude
-        if distance <= MaxDistance then -- Exibir jogadores dentro do raio de 5000 studs
-            local radarPosition = calculateRadarPosition(root.Position, clientRoot.Position)
-            
-            -- Atualizar a posição no radar e o nome do jogador
-            local drawings = playerDrawings[player]
-            drawings.radarPoint.Position = radarPosition
-            drawings.radarPoint.Visible = true
-            
-            -- Posicionar o nome do jogador acima do radarPoint
-            drawings.playerNameText.Position = Vector2.new(radarPosition.X, radarPosition.Y - PlayerNameYOffset)
-            drawings.playerNameText.Text = player.Name -- Nome atualizado corretamente
-            drawings.playerNameText.Visible = true
-        else
-            -- Jogador muito distante, apenas mostrá-lo na borda
-            local direction = (root.Position - clientRoot.Position).Unit
-            local radarPosition = calculateRadarPosition(clientRoot.Position + direction * MaxDistance, clientRoot.Position)
-            
-            -- Atualizar para que a bolinha do jogador fique na borda
-            local drawings = playerDrawings[player]
-            drawings.radarPoint.Position = radarPosition
-            drawings.radarPoint.Visible = true
-            
-            -- Nome na borda
-            drawings.playerNameText.Position = Vector2.new(radarPosition.X, radarPosition.Y - PlayerNameYOffset)
-            drawings.playerNameText.Text = player.Name
-            drawings.playerNameText.Visible = true
-        end
-    else
-        -- Esconder os desenhos caso o jogador não esteja visível
-        playerDrawings[player].radarPoint.Visible = false
-        playerDrawings[player].playerNameText.Visible = false
-    end
-end
-
--- Atualiza o radar para todos os jogadores
-local function updateRadar()
-    if not radarEnabled then return end -- Verificar se o radar está ativo
-
-    -- Atualizar a seta de direção com base na rotação do jogador local
-    local clientRoot = getHumanoidRootPart(Client.Character)
-    if clientRoot then
-        local lookVector = clientRoot.CFrame.LookVector
-        updateArrowDirection(lookVector) -- Atualiza a seta de acordo com a direção correta
-    end
-
-    -- Atualizar o radar para cada jogador (posições fixas no radar)
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Client then
-            setupPlayerDrawing(player)
-            updateRadarForPlayer(player) -- Garantir que o jogador e seu nome estão atualizados corretamente
-        end
-    end
-end
-
--- Otimização para não atualizar a cada frame
-local lastUpdate = 0
-game:GetService("RunService").RenderStepped:Connect(function(deltaTime)
-    lastUpdate = lastUpdate + deltaTime
-    if lastUpdate >= 0.2 then -- Atualiza a cada 200ms para melhorar desempenho
-        updateRadar()
-        RadarBorder.Color = calculateRGBColor(tick()) -- Atualizar cor da borda dinamicamente
-        lastUpdate = 0
-    end
-end)
-
--- Detectar quando a tecla "F7" é pressionada para ativar/desativar o radar
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.F7 then
-        radarEnabled = not radarEnabled -- Alterna o estado do radar
-        RadarBackground.Visible = radarEnabled
-        RadarBorder.Visible = radarEnabled
-        SelfMarker.Visible = radarEnabled
-        DirectionArrow.Visible = radarEnabled
-
-        -- Controlar visibilidade das bolinhas e textos dos jogadores
-        for _, drawings in pairs(playerDrawings) do
-            drawings.radarPoint.Visible = radarEnabled
-            drawings.playerNameText.Visible = radarEnabled
-        end
-    end
-end)
-
 -- ChineseZombie
+-- Serviços necessários
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
 -- Equipamento alvo para o ESP (somente BalaclavaFSB)
 local equipamentoAlvo = "BalaclavaFSB"
 local espAtivado = true -- Controla o estado de ativação/desativação do ESP
 local espGuiList = {} -- Lista para armazenar todas as GUI criadas
-
--- Intervalo de atualização para reduzir a carga
-local updateInterval = 1  -- Atualiza a cada 1 segundo para reduzir o lag
+local MAX_TENTATIVAS = 5  -- Limite de tentativas para evitar loop infinito
+local jogadoresLista = {}  -- Lista atualizada de jogadores no servidor
 
 -- Função para remover todas as GUIs quando o jogador ou equipamento for removido
 local function removerGUIs()
     for _, gui in pairs(espGuiList) do
-        if gui then
-            gui:Destroy()  -- Remove as GUIs antigas
-        end
+        gui:Destroy()  -- Remove as GUIs antigas
     end
     espGuiList = {}  -- Limpa a lista
 end
 
--- Função para criar ESP (sem exibir studs/distance para melhorar o desempenho)
-local function criarESPParaEquipamento(equipamento)
+-- Função para criar ESP (somente o nome, sem distância)
+local function criarESPParaEquipamento(equipamento, tentativas)
+    tentativas = tentativas or 0
     local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
 
-    -- Se não houver rootPart, não crie a GUI
+    -- Se a parte ainda não foi replicada, aguarde e tente novamente
     if not rootPart then
+        if tentativas < MAX_TENTATIVAS then
+            -- Tentar novamente após um pequeno intervalo, sem emitir avisos
+            task.wait(1)
+            criarESPParaEquipamento(equipamento, tentativas + 1)
+        end
         return
-    end
-
-    -- Verifica se o equipamento já tem um ESP aplicado
-    if rootPart:FindFirstChild("ESPGui") then
-        return  -- Evita recriar GUIs
     end
 
     -- Criação do BillboardGui para o ESP
     local gui = Instance.new("BillboardGui")
-    gui.Name = "ESPGui"
     gui.Adornee = rootPart
-    gui.Size = UDim2.new(0, 100, 0, 50) -- Tamanho do ESP
+    gui.Size = UDim2.new(0, 80, 0, 40) -- Tamanho do ESP reduzido
     gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
-    gui.AlwaysOnTop = true  -- Garantir que o ESP sempre apareça acima de outros objetos
+    gui.AlwaysOnTop = true
     gui.Parent = rootPart
     table.insert(espGuiList, gui) -- Armazena na lista para controle de ativação/desativação
 
-    -- Criação da Label para exibir o nome "ChineseZombie"
+    -- Criação da Label para exibir "ChineseZombie" (sem a distância)
     local nomeLabel = Instance.new("TextLabel", gui)
     nomeLabel.BackgroundTransparency = 1
     nomeLabel.Size = UDim2.new(1, 0, 1, 0)
-    nomeLabel.TextColor3 = Color3.new(1, 0, 0) -- Texto vermelho
+    nomeLabel.TextColor3 = Color3.new(1, 1, 1) -- Texto branco
     nomeLabel.Font = Enum.Font.SourceSansBold
     nomeLabel.TextScaled = true
     nomeLabel.Text = "ChineseZombie"
+
+    -- Função para verificar se o equipamento ainda existe
+    RunService.RenderStepped:Connect(function()
+        if not equipamento or not equipamento.Parent then
+            gui:Destroy()  -- Remove o ESP se o equipamento não existir mais
+        end
+    end)
+end
+
+-- Função para verificar se a entidade é um jogador
+local function entidadeEhJogador(entidade)
+    -- Verifica se a entidade pertence à lista de jogadores
+    for _, player in pairs(jogadoresLista) do
+        if player.Character == entidade then
+            return true
+        end
+    end
+    return false
+end
+
+-- Atualiza a lista de jogadores no servidor a cada 10 segundos
+local function atualizarListaJogadores()
+    while true do
+        jogadoresLista = Players:GetPlayers()
+        task.wait(10) -- Atualiza a cada 10 segundos
+    end
 end
 
 -- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
 local function verificarEAplicarESP(entidade)
+    -- Verifica se a entidade é um jogador, se for, não aplica ESP
+    if entidadeEhJogador(entidade) then
+        return
+    end
+
     -- Verifica se o nome da entidade corresponde ao equipamento alvo
     if string.find(entidade.Name, equipamentoAlvo) then
+        -- Aplica o ESP, limitando tentativas para evitar loops infinitos
         criarESPParaEquipamento(entidade)
     end
 end
@@ -871,24 +634,6 @@ local function monitorarNovasEntidades()
     end)
 end
 
--- Função para monitorar a mudança de equipamentos no jogador
-local function monitorarMudancasDeEquipamento()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
-    -- Monitorar mudanças no personagem
-    character.ChildAdded:Connect(function(item)
-        -- Verifica se o item recém-adicionado é o equipamento alvo
-        verificarEAplicarESP(item)
-    end)
-
-    character.ChildRemoved:Connect(function(item)
-        -- Se o equipamento foi removido, remove o ESP
-        if item.Name == equipamentoAlvo then
-            removerGUIs()  -- Remove o ESP quando o equipamento alvo é removido
-        end
-    end)
-end
-
 -- Função principal para rodar a busca inicial e monitorar novas adições
 local function iniciarESP()
     removerGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
@@ -898,9 +643,6 @@ local function iniciarESP()
 
     -- Monitora adições futuras de entidades no jogo
     monitorarNovasEntidades()
-
-    -- Monitora as mudanças de equipamento no personagem
-    monitorarMudancasDeEquipamento()
 end
 
 -- Função para ativar/desativar o ESP
@@ -916,18 +658,31 @@ local function alternarESP()
     end
 end
 
--- Função para detectar a tecla F7 e alternar o ESP
+-- Função para detectar a tecla F1 e alternar o ESP
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F7 then
+    if input.KeyCode == Enum.KeyCode.F1 then
         alternarESP()
     end
 end)
 
--- Monitora o reset do jogador para remover GUIs antigas e reaplicar ESP
+-- Função para recarregar o ESP periodicamente (a cada 5 segundos)
+local function recarregarESPPeriodicamente()
+    while true do
+        task.wait(5)
+        iniciarESP() -- Recarrega a verificação e o monitoramento
+    end
+end
+
+-- Monitora o reset do jogador para remover GUIs antigas
 LocalPlayer.CharacterAdded:Connect(function()
     removerGUIs()  -- Remove GUIs antigas quando o jogador reseta
-    monitorarMudancasDeEquipamento()  -- Reaplica monitoramento após o reset
 end)
 
 -- Inicia o processo de ESP
 iniciarESP()
+
+-- Inicia a recarga periódica
+task.spawn(recarregarESPPeriodicamente)
+
+-- Inicia o processo de atualização da lista de jogadores
+task.spawn(atualizarListaJogadores)
