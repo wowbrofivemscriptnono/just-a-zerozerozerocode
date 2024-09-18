@@ -588,11 +588,11 @@ local function criarESPParaEquipamento(equipamento)
     end)
 end
 
--- Função para verificar se a entidade é um jogador
+-- Função para verificar se a entidade é um jogador e se o equipamento é parte de um jogador
 local function entidadeEhJogador(entidade)
-    -- Verifica se a entidade pertence à lista de jogadores
+    -- Verifica se a entidade tem um HumanoidRootPart e é um jogador
     for _, player in pairs(Players:GetPlayers()) do
-        if player.Character == entidade then
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") == entidade then
             return true
         end
     end
@@ -601,8 +601,8 @@ end
 
 -- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
 local function verificarEAplicarESP(entidade)
-    -- Verifica se a entidade é um jogador, se for, não aplica ESP
-    if entidadeEhJogador(entidade) then
+    -- Verifica se a entidade é um jogador ou o HumanoidRootPart do jogador, se for, não aplica ESP
+    if entidade:IsA("BasePart") and entidadeEhJogador(entidade) then
         return
     end
 
