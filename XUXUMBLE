@@ -515,3 +515,174 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleFeature()
     end
 end)
+
+-- ChineseZombie
+-- Serviços necessários
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Equipamento alvo para o ESP (somente BalaclavaFSB)
+local equipamentoAlvo = "BalaclavaFSB"
+local espAtivado = true -- Controla o estado de ativação/desativação do ESP
+local espGuiList = {} -- Lista para armazenar todas as GUI criadas
+local MAX_TENTATIVAS = 5  -- Limite de tentativas para evitar loop infinito
+local jogadoresLista = {}  -- Lista atualizada de jogadores no servidor
+
+-- Função para remover todas as GUIs quando o jogador ou equipamento for removido
+local function removerGUIs()
+    for _, gui in pairs(espGuiList) do
+        gui:Destroy()  -- Remove as GUIs antigas
+    end
+    espGuiList = {}  -- Limpa a lista
+end
+
+-- Função para criar ESP (somente o nome, sem distância)
+local function criarESPParaEquipamento(equipamento, tentativas)
+    tentativas = tentativas or 0
+    local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
+
+    -- Se a parte ainda não foi replicada, aguarde e tente novamente
+    if not rootPart then
+        if tentativas < MAX_TENTATIVAS then
+            -- Tentar novamente após um pequeno intervalo, sem emitir avisos
+            task.wait(1)
+            criarESPParaEquipamento(equipamento, tentativas + 1)
+        end
+        return
+    end
+
+    -- Criação do BillboardGui para o ESP
+    local gui = Instance.new("BillboardGui")
+    gui.Adornee = rootPart
+    gui.Size = UDim2.new(0, 80, 0, 40) -- Tamanho do ESP reduzido
+    gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
+    gui.AlwaysOnTop = true
+    gui.Parent = rootPart
+    table.insert(espGuiList, gui) -- Armazena na lista para controle de ativação/desativação
+
+    -- Criação da Label para exibir "ChineseZombie" (sem a distância)
+    local nomeLabel = Instance.new("TextLabel", gui)
+    nomeLabel.BackgroundTransparency = 1
+    nomeLabel.Size = UDim2.new(1, 0, 1, 0)
+    nomeLabel.TextColor3 = Color3.new(1, 1, 1) -- Texto branco
+    nomeLabel.Font = Enum.Font.SourceSansBold
+    nomeLabel.TextScaled = true
+    nomeLabel.Text = "ChineseZombie"
+
+    -- Função para verificar se o equipamento ainda existe
+    RunService.RenderStepped:Connect(function()
+        if not equipamento or not equipamento.Parent then
+            gui:Destroy()  -- Remove o ESP se o equipamento não existir mais
+        end
+    end)
+end
+
+-- Função para verificar se a entidade é um jogador
+local function entidadeEhJogador(entidade)
+    -- Verifica se a entidade pertence à lista de jogadores
+    for _, player in pairs(jogadoresLista) do
+        if player.Character == entidade then
+            return true
+        end
+    end
+    return false
+end
+
+-- Atualiza a lista de jogadores no servidor a cada 10 segundos
+local function atualizarListaJogadores()
+    while true do
+        jogadoresLista = Players:GetPlayers()
+        task.wait(10) -- Atualiza a cada 10 segundos
+    end
+end
+
+-- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
+local function verificarEAplicarESP(entidade)
+    -- Verifica se a entidade é um jogador, se for, não aplica ESP
+    if entidadeEhJogador(entidade) then
+        return
+    end
+
+    -- Verifica se o nome da entidade corresponde ao equipamento alvo
+    if string.find(entidade.Name, equipamentoAlvo) then
+        -- Aplica o ESP, limitando tentativas para evitar loops infinitos
+        criarESPParaEquipamento(entidade)
+    end
+end
+
+-- Função para verificar pastas específicas e procurar pelo equipamento alvo
+local function verificarPasta(pasta)
+    for _, entidade in pairs(pasta:GetDescendants()) do
+        verificarEAplicarESP(entidade)
+    end
+end
+
+-- Monitorar novas entidades adicionadas ao jogo (Workspace e ReplicatedStorage)
+local function monitorarNovasEntidades()
+    -- Verifica novas entidades adicionadas no Workspace
+    Workspace.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+
+    -- Verifica novas entidades adicionadas no ReplicatedStorage
+    ReplicatedStorage.ChildAdded:Connect(function(entidade)
+        verificarEAplicarESP(entidade)
+    end)
+end
+
+-- Função principal para rodar a busca inicial e monitorar novas adições
+local function iniciarESP()
+    removerGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
+    -- Verifica inicialmente os equipamentos já existentes no Workspace e ReplicatedStorage
+    verificarPasta(Workspace)
+    verificarPasta(ReplicatedStorage)
+
+    -- Monitora adições futuras de entidades no jogo
+    monitorarNovasEntidades()
+end
+
+-- Função para ativar/desativar o ESP
+local function alternarESP()
+    espAtivado = not espAtivado
+    for _, gui in pairs(espGuiList) do
+        gui.Enabled = espAtivado -- Ativa/desativa todas as GUIs criadas
+    end
+    if espAtivado then
+        print("ESP ativado")
+    else
+        print("ESP desativado")
+    end
+end
+
+-- Função para detectar a tecla F1 e alternar o ESP
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F1 then
+        alternarESP()
+    end
+end)
+
+-- Função para recarregar o ESP periodicamente (a cada 5 segundos)
+local function recarregarESPPeriodicamente()
+    while true do
+        task.wait(5)
+        iniciarESP() -- Recarrega a verificação e o monitoramento
+    end
+end
+
+-- Monitora o reset do jogador para remover GUIs antigas
+LocalPlayer.CharacterAdded:Connect(function()
+    removerGUIs()  -- Remove GUIs antigas quando o jogador reseta
+end)
+
+-- Inicia o processo de ESP
+iniciarESP()
+
+-- Inicia a recarga periódica
+task.spawn(recarregarESPPeriodicamente)
+
+-- Inicia o processo de atualização da lista de jogadores
+task.spawn(atualizarListaJogadores)
