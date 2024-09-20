@@ -515,4 +515,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleFeature()
     end
 end)
-
