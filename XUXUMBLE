@@ -547,7 +547,7 @@ local function removerTodasGUIs()
     espGuiList = {}  -- Limpa a lista
 end
 
--- Função para criar ESP (somente o nome, sem distância)
+-- Função para criar ESP (nome e distância)
 local function criarESPParaEquipamento(equipamento)
     local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
 
@@ -563,20 +563,42 @@ local function criarESPParaEquipamento(equipamento)
     -- Criação do BillboardGui para o ESP
     local gui = Instance.new("BillboardGui")
     gui.Adornee = rootPart
-    gui.Size = UDim2.new(0, 80, 0, 40) -- Tamanho do ESP
-    gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
+    gui.Size = UDim2.new(0, 80, 0, 60)
+    gui.StudsOffset = Vector3.new(0, 2, 0)
     gui.AlwaysOnTop = true
-    gui.Parent = rootPart -- Adiciona ao rootPart
-    espGuiList[equipamento] = gui -- Armazena na lista
+    gui.Parent = game.CoreGui -- Alterado para CoreGui para persistir mesmo longe
+    espGuiList[equipamento] = gui
 
     -- Criação da Label para exibir "ChineseZombie" com cor vermelha
     local nomeLabel = Instance.new("TextLabel", gui)
     nomeLabel.BackgroundTransparency = 1
-    nomeLabel.Size = UDim2.new(1, 0, 1, 0)
+    nomeLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nomeLabel.Position = UDim2.new(0, 0, 0, 0)
     nomeLabel.TextColor3 = Color3.new(1, 0, 0) -- Texto vermelho
     nomeLabel.Font = Enum.Font.SourceSansBold
     nomeLabel.TextScaled = true
     nomeLabel.Text = "ChineseZombie"
+
+    -- Criação da Label para exibir a distância
+    local distanciaLabel = Instance.new("TextLabel", gui)
+    distanciaLabel.BackgroundTransparency = 1
+    distanciaLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    distanciaLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    distanciaLabel.TextColor3 = Color3.new(1, 1, 1) -- Texto branco
+    distanciaLabel.Font = Enum.Font.SourceSansBold
+    distanciaLabel.TextScaled = true
+
+    -- Atualiza a distância e visibilidade continuamente
+    RunService.Heartbeat:Connect(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distancia = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+            distanciaLabel.Text = string.format("%.1f m", distancia)
+            
+            -- Atualiza a visibilidade com base no estado do ESP
+            gui.Enabled = espAtivado
+            gui.Adornee = rootPart -- Atualiza o Adornee para manter a posição correta
+        end
+    end)
 
     -- Manter o ESP enquanto o equipamento existir
     RunService.Heartbeat:Connect(function()
@@ -601,13 +623,14 @@ end
 
 -- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
 local function verificarEAplicarESP(entidade)
-    -- Verifica se a entidade é um jogador ou o HumanoidRootPart do jogador, se for, não aplica ESP
-    if entidade:IsA("BasePart") and entidadeEhJogador(entidade) then
-        return
-    end
-
-    -- Verifica se o nome da entidade corresponde ao equipamento alvo
-    if string.find(entidade.Name, equipamentoAlvo) then
+    if entidade:IsA("Model") then
+        for _, parte in pairs(entidade:GetDescendants()) do
+            if string.find(parte.Name, equipamentoAlvo) then
+                criarESPParaEquipamento(parte)
+                return
+            end
+        end
+    elseif string.find(entidade.Name, equipamentoAlvo) then
         criarESPParaEquipamento(entidade)
     end
 end
@@ -665,3 +688,20 @@ end)
 
 -- Inicia o processo de ESP
 iniciarESP()
+
+-- Atualização contínua para verificar novas entidades e atualizar ESPs existentes
+RunService.Heartbeat:Connect(function()
+    verificarPasta(Workspace)
+    verificarPasta(ReplicatedStorage)
+    
+    -- Atualiza a visibilidade de todos os ESPs
+    for equipamento, gui in pairs(espGuiList) do
+        if gui and gui.Parent then
+            local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
+            if rootPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                gui.Enabled = espAtivado
+                gui.Adornee = rootPart
+            end
+        end
+    end
+end)
