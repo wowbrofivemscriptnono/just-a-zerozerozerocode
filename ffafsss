@@ -144,9 +144,9 @@ else
 end
 
 -- ESP
-local FillColor = Color3.fromRGB(204,0,204)
+local FillColor = Color3.fromRGB(204, 0, 204)
 local DepthMode = "AlwaysOnTop"
-local FillTransparency = 0.5
+local FillTransparency = 1.0
 local OutlineColor = Color3.fromRGB(255, 255, 255)
 local OutlineTransparency = 0
 local CoreGui = cloneref(game:FindService("CoreGui"))
@@ -375,38 +375,31 @@ get("player").update = function(self, character, data)
             local x, y = math.floor(position.X), math.floor(position.Y)
             local xPosition, yPosition = math.floor(x - width * 0.5), math.floor((y - height * 0.5) + (0.5 * scale))
 
+            -- Ajustando as espessuras das caixas para evitar que fiquem muito grossas
             drawings.box.Size = Vector2.new(width, height)
             drawings.box.Position = Vector2.new(xPosition, yPosition)
+            drawings.box.Color = color(visuals.boxes.color)
+            drawings.box.Thickness = 0.5 -- Espessura reduzida
+
             drawings.boxFilled.Size = drawings.box.Size
             drawings.boxFilled.Position = drawings.box.Position
-            drawings.boxOutline.Size = drawings.box.Size
-            drawings.boxOutline.Position = drawings.box.Position
-
-            drawings.box.Color = color(visuals.boxes.color)
-            drawings.box.Thickness = 1
             drawings.boxFilled.Color = color(visuals.boxes.filled.color)
             drawings.boxFilled.Transparency = visuals.boxes.filled.transparency
-            drawings.boxOutline.Color = visuals.boxes.outline.color
-            drawings.boxOutline.Thickness = 3
 
-            drawings.boxOutline.ZIndex = drawings.box.ZIndex - 1
-            drawings.boxFilled.ZIndex = drawings.boxOutline.ZIndex - 1
+            drawings.boxOutline.Size = drawings.box.Size
+            drawings.boxOutline.Position = drawings.box.Position
+            drawings.boxOutline.Color = color(visuals.boxes.outline.color)
+            drawings.boxOutline.Thickness = 0.5 -- Espessura da linha externa
 
             drawings.name.Text = `[ {player.Name} ]`
             drawings.name.Size = math.max(math.min(math.abs(12.5 * scale), 12.5), 10)
             drawings.name.Position = Vector2.new(x, (yPosition - drawings.name.TextBounds.Y) - 2)
             drawings.name.Color = color(visuals.names.color)
-            drawings.name.Outline = visuals.names.outline.enabled
-            drawings.name.OutlineColor = visuals.names.outline.color
-
-            drawings.name.ZIndex = drawings.box.ZIndex + 1
 
             drawings.distance.Text = `[ {math.floor(data.distance)} ]`
             drawings.distance.Size = math.max(math.min(math.abs(11 * scale), 11), 10)
             drawings.distance.Position = Vector2.new(x, (yPosition + height) + (drawings.distance.TextBounds.Y * 0.25))
             drawings.distance.Color = color(visuals.distance.color)
-            drawings.distance.Outline = visuals.distance.outline.enabled
-            drawings.distance.OutlineColor = visuals.distance.outline.color
         end
 
         drawings.box.Visible = (check() and visible and visuals.boxes.enabled)
@@ -498,7 +491,7 @@ declare(get('player'), 'removing', workspace.ChildRemoved:Connect(function(playe
     end
 end), true)
 
--- Key
+-- Atualizando a função de alternar visuais (F1)
 local isEnabled = true
 
 local function toggleFeature()
@@ -506,6 +499,23 @@ local function toggleFeature()
     features.visuals.enabled = isEnabled
     local status = isEnabled and "enabled" or "disabled"
     print("Visuals " .. status)
+
+    -- Se desativado, esconder ou destruir todos os highlights
+    if not isEnabled then
+        for character, data in get("player").cache do
+            if data.highlight then
+                -- Esconde o highlight ao invés de destruir
+                data.highlight.Enabled = false
+            end
+        end
+    else
+        -- Reativar os highlights quando as visuais forem habilitadas novamente
+        for character, data in get("player").cache do
+            if data.highlight then
+                data.highlight.Enabled = true
+            end
+        end
+    end
 end
 
 local UserInputService = game:GetService("UserInputService")
