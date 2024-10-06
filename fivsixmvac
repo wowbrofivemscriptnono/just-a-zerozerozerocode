@@ -1,196 +1,179 @@
--- ChineseZombie
--- Serviços necessários
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+-- ChineseZombie Encapsulado
+local function iniciarChineseZombieESP()
+    -- Serviços necessários
+    local Workspace = game:GetService("Workspace")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
 
--- Equipamento alvo para o ESP (somente BalaclavaFSB)
-local equipamentoAlvo = "BalaclavaFSB"
-local espAtivado = true -- ESP ativado por padrão
-local espGuiList = {} -- Lista para armazenar todas as GUI criadas
-local TEMPO_ADICIONAL = 20 -- Tempo adicional de 20 segundos antes de remover o ESP
-local DISTANCIA_MAXIMA = 1000 -- Distância máxima para exibir o ESP
-local LOTE_TAMANHO = 20 -- Tamanho do lote de verificações por vez
-local VERIFICACAO_INTERVALO = 3 -- Intervalo em segundos entre verificações
-local DISTANCIA_UPDATE_INTERVALO = 1 -- Intervalo de atualização da distância
-
--- Função para remover GUIs específicas
-local function removerGUI(gui)
-    if gui and gui.Parent then
-        gui:Destroy()
-    end
-end
-
--- Função para remover todas as GUIs
-local function removerTodasGUIs()
-    for _, gui in pairs(espGuiList) do
-        removerGUI(gui)
-    end
-    espGuiList = {}  -- Limpa a lista
-end
-
--- Função para criar ESP (nome e distância)
-local function criarESPParaEquipamento(equipamento)
-    local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
-
-    if not rootPart then
-        return
+    local LocalPlayer = Players.LocalPlayer
+    while not LocalPlayer do
+        task.wait(1)
+        LocalPlayer = Players.LocalPlayer
     end
 
-    -- Verifica se já existe um ESP para o equipamento
-    if espGuiList[equipamento] then
-        return -- Se já existe, não cria outro
-    end
+    -- Equipamento alvo para o ESP (somente BalaclavaFSB)
+    local equipamentoAlvo = "BalaclavaFSB"
+    local espAtivado = true
+    local espGuiList = {}
+    local TEMPO_ADICIONAL = 20
+    local DISTANCIA_MAXIMA = 1000
+    local LOTE_TAMANHO = 20
+    local VERIFICACAO_INTERVALO = 3
+    local DISTANCIA_UPDATE_INTERVALO = 1
 
-    -- Criação do BillboardGui para o ESP
-    local gui = Instance.new("BillboardGui")
-    gui.Adornee = rootPart
-    gui.Size = UDim2.new(0, 80, 0, 60) -- Tamanho aumentado para acomodar a distância
-    gui.StudsOffset = Vector3.new(0, 2, 0) -- Posição acima do equipamento
-    gui.AlwaysOnTop = true
-    gui.Parent = rootPart -- Adiciona ao rootPart
-    espGuiList[equipamento] = gui -- Armazena na lista
-
-    -- Criação da Label para exibir "ChineseZombie" com cor vermelha
-    local nomeLabel = Instance.new("TextLabel", gui)
-    nomeLabel.BackgroundTransparency = 1
-    nomeLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    nomeLabel.Position = UDim2.new(0, 0, 0, 0)
-    nomeLabel.TextColor3 = Color3.new(1, 0, 0) -- Texto vermelho
-    nomeLabel.Font = Enum.Font.SourceSansBold
-    nomeLabel.TextScaled = true
-    nomeLabel.Text = "ChineseZombie"
-
-    -- Criação da Label para exibir a distância
-    local distanciaLabel = Instance.new("TextLabel", gui)
-    distanciaLabel.BackgroundTransparency = 1
-    distanciaLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    distanciaLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    distanciaLabel.TextColor3 = Color3.new(1, 1, 1) -- Texto branco
-    distanciaLabel.Font = Enum.Font.SourceSansBold
-    distanciaLabel.TextScaled = true
-
-    -- Função de atualização da distância (studs) a cada 3 segundos
-    local function atualizarDistancia()
-        while gui and gui.Parent and espAtivado do
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local distancia = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
-                distanciaLabel.Text = string.format("%.1f m", distancia)
-                
-                -- Atualiza a visibilidade com base na distância
-                gui.Enabled = distancia <= DISTANCIA_MAXIMA
-            end
-            task.wait(DISTANCIA_UPDATE_INTERVALO)
+    -- Função para remover GUIs específicas
+    local function removerGUI(gui)
+        if gui and gui.Parent then
+            gui:Destroy()
         end
     end
 
-    -- Atualiza a distância de forma assíncrona
-    task.spawn(atualizarDistancia)
-
-    -- Manter o ESP enquanto o equipamento existir
-    RunService.Heartbeat:Connect(function()
-        if not equipamento.Parent then
-            task.wait(TEMPO_ADICIONAL) -- Aguarda 20 segundos adicionais antes de remover o ESP
+    -- Função para remover todas as GUIs
+    local function removerTodasGUIs()
+        for _, gui in pairs(espGuiList) do
             removerGUI(gui)
-            espGuiList[equipamento] = nil -- Remove da lista
         end
-    end)
-end
-
--- Função para verificar se o equipamento é o alvo (somente BalaclavaFSB)
-local function verificarEAplicarESP(entidade)
-    -- Verifica se o nome da entidade corresponde ao equipamento alvo
-    if string.find(entidade.Name, equipamentoAlvo) then
-        criarESPParaEquipamento(entidade)
+        espGuiList = {}
     end
-end
 
--- Função para verificar entidades em lotes e priorizar entidades próximas
-local function verificarEntidadesPorLotes(entidades)
-    local totalEntidades = #entidades
-    local indice = 1
+    -- Função para criar ESP (nome e distância)
+    local function criarESPParaEquipamento(equipamento)
+        local rootPart = equipamento:FindFirstChildWhichIsA("BasePart") or equipamento:FindFirstChild("Handle")
 
-    -- Função para processar um lote de entidades
-    local function processarLote()
-        for i = 1, LOTE_TAMANHO do
-            if indice > totalEntidades then
-                indice = 1 -- Reinicia quando todas as entidades forem verificadas
-                break
+        if not rootPart then
+            return
+        end
+
+        if espGuiList[equipamento] then
+            return
+        end
+
+        local gui = Instance.new("BillboardGui")
+        gui.Adornee = rootPart
+        gui.Size = UDim2.new(0, 80, 0, 60)
+        gui.StudsOffset = Vector3.new(0, 2, 0)
+        gui.AlwaysOnTop = true
+        gui.Parent = rootPart
+        espGuiList[equipamento] = gui
+
+        local nomeLabel = Instance.new("TextLabel", gui)
+        nomeLabel.BackgroundTransparency = 1
+        nomeLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        nomeLabel.TextColor3 = Color3.new(1, 0, 0)
+        nomeLabel.Font = Enum.Font.SourceSansBold
+        nomeLabel.TextScaled = true
+        nomeLabel.Text = "ChineseZombie"
+
+        local distanciaLabel = Instance.new("TextLabel", gui)
+        distanciaLabel.BackgroundTransparency = 1
+        distanciaLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        distanciaLabel.Position = UDim2.new(0, 0, 0.5, 0)
+        distanciaLabel.TextColor3 = Color3.new(1, 1, 1)
+        distanciaLabel.Font = Enum.Font.SourceSansBold
+        distanciaLabel.TextScaled = true
+
+        local function atualizarDistancia()
+            while gui and gui.Parent and espAtivado do
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local distancia = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+                    distanciaLabel.Text = string.format("%.1f m", distancia)
+                    gui.Enabled = distancia <= DISTANCIA_MAXIMA
+                end
+                task.wait(DISTANCIA_UPDATE_INTERVALO)
             end
+        end
 
-            local entidade = entidades[indice]
-            verificarEAplicarESP(entidade)
-            indice = indice + 1
+        task.spawn(atualizarDistancia)
+
+        RunService.Heartbeat:Connect(function()
+            if not equipamento.Parent then
+                task.wait(TEMPO_ADICIONAL)
+                removerGUI(gui)
+                espGuiList[equipamento] = nil
+            end
+        end)
+    end
+
+    local function verificarEAplicarESP(entidade)
+        if string.find(entidade.Name, equipamentoAlvo) then
+            criarESPParaEquipamento(entidade)
         end
     end
 
-    -- Atualiza periodicamente (a cada ciclo do RunService)
-    RunService.Heartbeat:Connect(processarLote)
-end
+    local function verificarEntidadesPorLotes(entidades)
+        local totalEntidades = #entidades
+        local indice = 1
 
--- Função para verificar todas as entidades em lotes
-local function verificarEntidadesExistentes()
-    -- Coleta todas as entidades no Workspace e ReplicatedStorage
-    local entidades = {}
+        local function processarLote()
+            for i = 1, LOTE_TAMANHO do
+                if indice > totalEntidades then
+                    indice = 1
+                    break
+                end
 
-    for _, entidade in pairs(Workspace:GetDescendants()) do
-        table.insert(entidades, entidade)
+                local entidade = entidades[indice]
+                verificarEAplicarESP(entidade)
+                indice = indice + 1
+            end
+        end
+
+        RunService.Heartbeat:Connect(processarLote)
     end
 
-    for _, entidade in pairs(ReplicatedStorage:GetDescendants()) do
-        table.insert(entidades, entidade)
+    local function verificarEntidadesExistentes()
+        local entidades = {}
+
+        for _, entidade in pairs(Workspace:GetDescendants()) do
+            table.insert(entidades, entidade)
+        end
+
+        for _, entidade in pairs(ReplicatedStorage:GetDescendants()) do
+            table.insert(entidades, entidade)
+        end
+
+        verificarEntidadesPorLotes(entidades)
     end
 
-    -- Realiza a verificação por lotes
-    verificarEntidadesPorLotes(entidades)
-end
-
--- Função principal para rodar a busca inicial e monitorar novas adições
-local function iniciarESP()
-    removerTodasGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
-
-    -- Verifica inicialmente os equipamentos já existentes no Workspace e ReplicatedStorage
-    verificarEntidadesExistentes()
-
-    -- Monitora adições futuras de entidades no jogo
-    Workspace.ChildAdded:Connect(function(entidade)
-        verificarEAplicarESP(entidade)
-    end)
-
-    ReplicatedStorage.ChildAdded:Connect(function(entidade)
-        verificarEAplicarESP(entidade)
-    end)
-
-    -- Verifica periodicamente todas as entidades em intervalos
-    while true do
+    local function iniciarESP()
+        removerTodasGUIs()
         verificarEntidadesExistentes()
-        task.wait(VERIFICACAO_INTERVALO) -- Verificação geral a cada 3 segundos
+
+        Workspace.ChildAdded:Connect(function(entidade)
+            verificarEAplicarESP(entidade)
+        end)
+
+        ReplicatedStorage.ChildAdded:Connect(function(entidade)
+            verificarEAplicarESP(entidade)
+        end)
+
+        while true do
+            verificarEntidadesExistentes()
+            task.wait(VERIFICACAO_INTERVALO)
+        end
     end
+
+    local function alternarESP()
+        espAtivado = not espAtivado
+        for _, gui in pairs(espGuiList) do
+            gui.Enabled = espAtivado
+        end
+        print(espAtivado and "ESP ativado" or "ESP desativado")
+    end
+
+    UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.F1 then
+            alternarESP()
+        end
+    end)
+
+    LocalPlayer.CharacterAdded:Connect(function()
+        removerTodasGUIs()
+    end)
+
+    iniciarESP()
 end
 
--- Função para alternar o ESP
-local function alternarESP()
-    espAtivado = not espAtivado
-    for _, gui in pairs(espGuiList) do
-        gui.Enabled = espAtivado -- Ativa/desativa todas as GUIs criadas
-    end
-    print(espAtivado and "ESP ativado" or "ESP desativado")
-end
-
--- Função para detectar a tecla F1 e alternar o ESP
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F1 then
-        alternarESP()
-    end
-end)
-
--- Monitora o reset do jogador para remover GUIs antigas
-LocalPlayer.CharacterAdded:Connect(function()
-    removerTodasGUIs()  -- Remove GUIs antigas quando o jogador reseta
-end)
-
--- Inicia o processo de ESP
-iniciarESP()
+-- Inicializa o ESP do Chinese Zombie
+iniciarChineseZombieESP()
