@@ -1,4 +1,3 @@
--- Serviços necessários
 local HttpService = game:GetService("HttpService")
 local Webhook_URL = "https://discord.com/api/webhooks/1273126437347393570/592JRl1TYx3XZZXOYLt44dDM4kU7vQygoU5Y8nJ9IwQwyP-fioweNsKcjN-WVA82Vavn"
 
