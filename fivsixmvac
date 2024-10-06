@@ -1,4 +1,5 @@
--- ChineseZombie Encapsulado
+-- ChineseZombie Encapsulado e revisado
+
 local function iniciarChineseZombieESP()
     -- Serviços necessários
     local Workspace = game:GetService("Workspace")
@@ -175,5 +176,5 @@ local function iniciarChineseZombieESP()
     iniciarESP()
 end
 
--- Inicializa o ESP do Chinese Zombie
+-- Inicializa o ESP de Chinese Zombie
 iniciarChineseZombieESP()
