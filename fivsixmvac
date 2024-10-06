@@ -4,8 +4,17 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+
+-- Verifique se o LocalPlayer está disponível
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    LocalPlayer = Players.LocalPlayer
+    while not LocalPlayer do
+        task.wait(1) -- Espera o LocalPlayer ser carregado
+        LocalPlayer = Players.LocalPlayer
+    end
+end
 
 -- Equipamento alvo para o ESP (somente BalaclavaFSB)
 local equipamentoAlvo = "BalaclavaFSB"
@@ -151,6 +160,8 @@ end
 -- Função principal para rodar a busca inicial e monitorar novas adições
 local function iniciarESP()
     removerTodasGUIs()  -- Limpa todas as GUIs antigas antes de iniciar
+
+    print("Iniciando ESP...")  -- Debug print
 
     -- Verifica inicialmente os equipamentos já existentes no Workspace e ReplicatedStorage
     verificarEntidadesExistentes()
