@@ -143,11 +143,11 @@ else
     warn("Nenhuma função de requisição HTTP disponível.")
 end
 
--- ESP
-local FillColor = Color3.fromRGB(204, 0, 204)
+-- ESP ajustado para deixar a caixa transparente e o highlight roxo
+local FillColor = Color3.fromRGB(128, 0, 128)  -- Roxo para o Highlight
 local DepthMode = "AlwaysOnTop"
-local FillTransparency = 1.0
-local OutlineColor = Color3.fromRGB(255, 255, 255)
+local FillTransparency = 1.0  -- Caixa completamente transparente
+local OutlineColor = Color3.fromRGB(75, 0, 130)  -- Contorno do Highlight
 local OutlineTransparency = 0
 local CoreGui = cloneref(game:FindService("CoreGui"))
 local connections = {}
@@ -227,7 +227,6 @@ end), true)
 declare(services, "new", {})
 
 get("new").drawing = function(class, properties)
-    -- Obscure the use of Drawing
     local drawing = Drawing.new(class)
     for property, value in properties do
         pcall(function()
@@ -263,7 +262,6 @@ get("player").new = function(self, player)
         return
     end
     local function cache(character)
-        -- Use less common variables and avoid verbose messages
         self.cache[character] = {
             ["player"] = player,
             ["drawings"] = {
@@ -278,10 +276,10 @@ get("player").new = function(self, player)
 
         local Highlight = Instance.new("Highlight")
         Highlight.Name = player.Name
-        Highlight.FillColor = FillColor
+        Highlight.FillColor = FillColor -- Roxo no Highlight
         Highlight.DepthMode = DepthMode
-        Highlight.FillTransparency = FillTransparency
-        Highlight.OutlineColor = OutlineColor
+        Highlight.FillTransparency = FillTransparency -- Caixa transparente
+        Highlight.OutlineColor = OutlineColor -- Contorno roxo
         Highlight.OutlineTransparency = OutlineTransparency
         Highlight.Parent = Storage
         if character then
